@@ -101,7 +101,7 @@ def init_db():
         "CREATE TABLE IF NOT EXISTS uploads (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, filename TEXT, stored_path TEXT, uploaded_at TEXT, rows INTEGER, cols INTEGER, missing INTEGER, FOREIGN KEY(user_id) REFERENCES users(id))"
     )
     cursor.execute(
-        "CREATE TABLE IF NOT EXISTS experiments (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, upload_id INTEGER, target TEXT, problem_type TEXT, model_type TEXT, metrics TEXT, trained_at TEXT, model_path TEXT, FOREIGN KEY(upload_id) REFERENCES uploads(id), FOREIGN KEY(user_id) REFERENCES users(id))"
+        "CREATE TABLE IF NOT EXISTS experiments (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, upload_id INTEGER, target TEXT, problem_type TEXT, model_type TEXT, metrics TEXT, trained_at TEXT, model_path TEXT, FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(upload_id) REFERENCES uploads(id))"
     )
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS predictions (id INTEGER PRIMARY KEY AUTOINCREMENT, experiment_id INTEGER, input_data TEXT, predicted_value TEXT, predicted_at TEXT, FOREIGN KEY(experiment_id) REFERENCES experiments(id))"
@@ -354,11 +354,15 @@ def model_training(df, target, model_type="Auto", upload_id=None, user_id=None):
 
     if not backend_available():
         st.error(
-            "Backend unavailable: training requires the FastAPI service to be running on localhost:8000. "
-            "Please start the backend with `uvicorn backend:app --reload --host 127.0.0.1 --port 8000`."
+            "❌ **Backend Service Unavailable**\n\n"
+            "The FastAPI backend is not running. Please start it in a separate terminal:\n\n"
+            "```bash\npython backend.py\n```\n\n"
+            "Or use:\n\n"
+            "```bash\nuvicorn backend:app --reload --host 0.0.0.0 --port 8000\n```\n\n"
+            "**Make sure the backend starts BEFORE using this app.**"
         )
     else:
-        st.error("Backend service responded with an error. تحقق من سجلات `backend.py` أو انظر الخطأ في وحدة التحكم.")
+        st.error("❌ Backend service error. Check the backend console output for more details.")
     return None
 
 
@@ -461,22 +465,7 @@ if not st.session_state.get("logged_in"):
     st.subheader("يرجى تسجيل الدخول لمتابعة التطبيق")
     st.info("بعد تسجيل الدخول، يمكنك رفع ملفات CSV، تدريب النموذج، وعرض تاريخك الخاص.")
     st.stop()
-    st.subheader("Fast Start")
-    st.info("Upload a CSV file from your computer to begin the analytics workflow.")
-    st.markdown(
-        "- Upload your dataset\n"
-        "- Review row/column metrics\n"
-        "- Explore correlations and charts\n"
-        "- Train a predictive model and make forecasts"
-    )
-    st.markdown("---")
-    st.subheader("Recommended Workflow")
-    st.write(
-        "1. Upload and inspect data\n"
-        "2. Explore distributions and relationships\n"
-        "3. Choose a target and train the model\n"
-        "4. Predict with new inputs"
-    )
+
 else:
     if uploaded_file is None:
         st.info("اختر ملف CSV من الشريط الجانبي لبدء التحليلات.")
