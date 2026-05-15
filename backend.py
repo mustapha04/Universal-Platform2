@@ -215,7 +215,7 @@ def init_db():
         "CREATE TABLE IF NOT EXISTS uploads (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, filename TEXT, stored_path TEXT, uploaded_at TEXT, rows INTEGER, cols INTEGER, missing INTEGER, FOREIGN KEY(user_id) REFERENCES users(id))"
     )
     cursor.execute(
-        "CREATE TABLE IF NOT EXISTS experiments (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, upload_id INTEGER, target TEXT, problem_type TEXT, model_type TEXT, metrics TEXT, trained_at TEXT, model_path TEXT, FOREIGN KEY(upload_id) REFERENCES uploads(id), FOREIGN KEY(user_id) REFERENCES users(id))"
+        "CREATE TABLE IF NOT EXISTS experiments (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, upload_id INTEGER, target TEXT, problem_type TEXT, model_type TEXT, metrics TEXT, trained_at TEXT, model_path TEXT, FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(upload_id) REFERENCES uploads(id))"
     )
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS predictions (id INTEGER PRIMARY KEY AUTOINCREMENT, experiment_id INTEGER, input_data TEXT, predicted_value TEXT, predicted_at TEXT, FOREIGN KEY(experiment_id) REFERENCES experiments(id))"
@@ -469,4 +469,4 @@ def predict(request: PredictRequest):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("backend:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("backend:app", host="0.0.0.0", port=8000, reload=True)
