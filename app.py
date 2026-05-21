@@ -232,7 +232,7 @@ def login_user(user):
 
 def logout_user():
     """Clear user session state."""
-    for key in ["user_id", "username", "logged_in", "upload_id", "uploaded_file_key"]:
+    for key in ["user_id", "username", "logged_in", "upload_id", "uploaded_file_key", "uploaded_file"]:
         if key in st.session_state:
             del st.session_state[key]
 
@@ -366,6 +366,7 @@ def backend_train(upload_id, target, model_type, user_id=None):
     result = call_backend_post("/train", payload)
     
     if not result or result.get("error"):
+        st.error(f"❌ Training error: {result.get('error', 'Unknown error')}")
         return None
 
     metrics = result.get("metrics", {})
@@ -569,6 +570,10 @@ with st.sidebar:
         
         uploaded_file = st.file_uploader("📤 Upload CSV file", type=["csv"], key="csv_upload")
         
+        # Store uploaded file in session state if provided
+        if uploaded_file is not None:
+            st.session_state["uploaded_file"] = uploaded_file
+        
         st.markdown("---")
         
         page = st.radio(
@@ -635,10 +640,8 @@ if not st.session_state.get("logged_in"):
     st.info("Please login or register above to continue.")
     st.stop()
 
-if "uploaded_file" not in st.session_state:
-    uploaded_file = None
-else:
-    uploaded_file = st.session_state.get("uploaded_file")
+# Get uploaded file from session state
+uploaded_file = st.session_state.get("uploaded_file")
 
 if uploaded_file is None:
     st.info("👆 Select a CSV file from the sidebar to begin analysis.")
@@ -647,15 +650,24 @@ if uploaded_file is None:
 # Load and process data
 current_key = f"{uploaded_file.name}_{uploaded_file.size}"
 if st.session_state.get("uploaded_file_key") != current_key:
-    df = load_data(uploaded_file)
-    df = clean_data(df)
-    st.session_state["upload_id"] = save_uploaded_file(
-        uploaded_file, df, user_id=st.session_state.get("user_id")
-    )
-    st.session_state["uploaded_file_key"] = current_key
+    try:
+        df = load_data(uploaded_file)
+        df = clean_data(df)
+        st.session_state["upload_id"] = save_uploaded_file(
+            uploaded_file, df, user_id=st.session_state.get("user_id")
+        )
+        st.session_state["uploaded_file_key"] = current_key
+        st.success("✅ File uploaded successfully!")
+    except Exception as e:
+        st.error(f"❌ Error loading file: {str(e)}")
+        st.stop()
 else:
-    df = load_data(uploaded_file)
-    df = clean_data(df)
+    try:
+        df = load_data(uploaded_file)
+        df = clean_data(df)
+    except Exception as e:
+        st.error(f"❌ Error processing file: {str(e)}")
+        st.stop()
 
 # Display data summary
 col1, col2, col3 = st.columns(3)
@@ -723,19 +735,22 @@ elif page == "Modeling":
         train_button = st.button("🚀 Train Model", use_container_width=True)
 
     if train_button:
-        with st.spinner("⏳ Training model..."):
-            state = model_training(
-                df,
-                target_col,
-                model_type,
-                upload_id=st.session_state.get("upload_id"),
-                user_id=st.session_state.get("user_id"),
-            )
-        
-        if state:
-            st.success("✅ Model trained successfully!")
-            st.markdown("---")
-            prediction_panel(state, df)
+        if st.session_state.get("upload_id") is None:
+            st.error("❌ Upload ID not found. Please re-upload your file.")
+        else:
+            with st.spinner("⏳ Training model..."):
+                state = model_training(
+                    df,
+                    target_col,
+                    model_type,
+                    upload_id=st.session_state.get("upload_id"),
+                    user_id=st.session_state.get("user_id"),
+                )
+            
+            if state:
+                st.success("✅ Model trained successfully!")
+                st.markdown("---")
+                prediction_panel(state, df)
 
 # ==================== PAGE: HISTORY ====================
 
